@@ -10,16 +10,20 @@
                 <!输入框设计>
                 <form action="/test.php" method="get">
                     <br>
+                    棋盘坐标系：行为y轴，列为x轴<br>
+                    棋盘行列说明：如3*4指   3行格子*4列格子，若理解为线条为4行线条*5列线条<br>
+                    输入数据说明：为了您使用体验，请勿输入过大数据，这里我们的限制为20*20
+                    <br>
                     <hr>
                     棋盘设计:
                     <br>
-                    棋盘行数:<input type="number" name="row" id="row"  min="2" max="10" />
-                    棋盘列数:<input type="number" name="column" id="column"  min="1" max="10">
+                    棋盘行数:<input type="number" name="row" id="row"  min="0" max="20" />
+                    棋盘列数:<input type="number" name="column" id="column"  min="0" max="20"/>
                     <hr>
                     原始起跳点:
                     <br>
-                    起跳点所在行:<input type="number" name="fromRow" id="fromRow"  min="0" max="10" />
-                    起跳点所在列:<input type="number" name="fromColumn" id="fromColumn"  min="0" max="10">
+                    起跳点所在行:<input type="number" name="fromRow" id="fromRow"  min="0" max="20" />
+                    起跳点所在列:<input type="number" name="fromColumn" id="fromColumn"  min="0" max="20"/>
                     <br>
                     <input type="submit" value="确定" onclick="main()"/>
                     </form>
@@ -27,10 +31,8 @@
 
                 <script>
                     var direction=8;    //跳跃方向
-                    var MAX_X=3;      //X轴最大边界
-                    var MAX_Y=4;      //Y轴最大边界
                     var MAX_STEP=50;  //最大步数
-                    var num;
+                    var num=0;
                     var path=new Array(MAX_STEP + 1); 
 
                     
@@ -39,17 +41,9 @@
                     }//存路径
                     var dx=new Array( 0, 1, 2, 2, 1, -1, -2, -2, -1);//表示方向
                     var dy=new Array( 0, 2, 1, -1, -2, 2, 1, -1, -2);//表示方向
-                    var xy=new Array(MAX_Y+1);
-                    for(var i=0;i<MAX_Y+1;i++){
-                        xy[i]=new Array(MAX_X+1);
-                    }
-                    for(var i=0;i<MAX_Y+1;i++){
-                        for(var j=0;j<MAX_X+1;j++){
-                            xy[i][j]=0;
-                        }
-                    }
+                   
                     
-                    function Path( step){
+                    function Path(MAX_X, MAX_Y, step,xy){
                         for (var i = 0; i < MAX_Y;i++)
                         for (var j = 0; j < MAX_X; j++)
                             xy[i][j] = 0;
@@ -59,7 +53,7 @@
                     }
 
 
-                    function Judgment( x,  y){
+                    function Judgment(x, y, xy){
                         var judge = false;
 
                         if (xy[y][x]!=0)//重复结点，错误路径
@@ -70,11 +64,11 @@
                     }
 
 
-                    function Jump( x,y,  step){
+                    function Jump( MAX_X, MAX_Y,x,y,step,xy){
                         var t1, t2, t3, t4;
                         var x1, y1;
 
-                        Path(step);
+                        Path(MAX_X, MAX_Y,step,xy);
                         for (var k = 1; k <= direction; k++){
                             //朝八个方向中的某个方向跳跃
                             x1 = x + dx[k];
@@ -93,7 +87,7 @@
 
                             if (t1 && t2){//在棋盘内
                                 //记录位置
-                                if (!Judgment(x1, y1)){//返回false表示没有重复，可以继续寻找路径
+                                if (!Judgment(x1, y1,xy)){//返回false表示没有重复，可以继续寻找路径
                                     //continue;
                                     path[step][0] = x1;
                                     path[step][1] = y1;
@@ -111,7 +105,7 @@
                                         document.write("<br>");
                                     }//if(t3456)
                                     else{
-                                        Jump(x1, y1, step + 1); 
+                                        Jump(MAX_X, MAX_Y,x1, y1, step + 1,xy); 
                                     }//else
                                 }//if (!Judgment(x1, y1))
                             }//if(t1 && t2)
@@ -120,17 +114,35 @@
 
 
                     function main(){
-                        num = 0;//方法总数
                         //初始位置           
                        
-                        
-                      //  a=document.getElementById("fromRow").value;
-                      //  b=document.getElementById("fromColumn").value;
-                        path[0][0] = 0;
-                        path[0][1] = 0;
+                        var MAX_X;      //X轴最大边界
+                        var MAX_Y;      //Y轴最大边界
+                        var a,b;
+                      
                        
+                        MAX_X=document.getElementById("column").value;
+                        MAX_Y=document.getElementById("row").value;
+                        a=path[0][0]=document.getElementById("fromColumn").value;          
+                        b=path[0][1]=document.getElementById("fromRow").value;
+                        document.write(MAX_X,MAX_Y);
+                        document.write(a,b);
+                        
 
-                        Jump(path[0][0], path[0][0], 1);
+                        if(MAX_X>20 || MAX_Y>20 || a>20 ||b>20 || (a+1)>MAX_X || (b+1)>MAX_Y){
+                          document.write("拒绝服务！请按照规范输入数据");
+                        }
+                        var xy=new Array(MAX_Y+1);
+                        for(var i=0;i<MAX_Y+1;i++){
+                            xy[i]=new Array(MAX_X+1);
+                        }
+                        for(var i=0;i<MAX_Y+1;i++){
+                            for(var j=0;j<MAX_X+1;j++){
+                                xy[i][j]=0;
+                            }
+                        }
+                 
+                        Jump(MAX_X, MAX_Y,0, 0, 1,xy);
                         document.write("总方案数"+ num);      
                     }
 

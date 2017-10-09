@@ -4,45 +4,149 @@
             <tiltle>
                 跳马
             </tiltle>
-
+    
         </head>
-        <body>
-            <!输入框设计>
-            <form action="/test.php" method="get">
-                <br>
-                <hr>
-                棋盘设计:
-                <br>
-                棋盘行数:<input type="number" name="row" id="row"  min="2" max="10" />
-                棋盘列数:<input type="number" name="column" id="column"  min="1" max="10">
-                <hr>
-                原始起跳点:
-                <br>
-                起跳点所在行:<input type="number" name="fromRow" id="fromRow" value=2 min="2" max="10" />
-                起跳点所在列:<input type="number" name="fromColumn" id="fromColumn" value=2 min="1" max="10">
-                <br>
-                <input type="submit" value="确定" onclick="art()"/>
-            </form>
-              
-            
-            <script>
-             var a,b;
-             
-              function art(){
-                
-               a=document.getElementById("row").value;
-               
-               b=document.getElementById("column").value;
-          
-               r();
-              }
+            <body>   
+                <!输入框设计>
+                <form action="/test.php" method="get">
+                    <br>
+                    棋盘坐标系：行为y轴，列为x轴<br>
+                    棋盘行列说明：如3*4指   3行格子*4列格子，若理解为线条为4行线条*5列线条<br>
+                    输入数据说明：为了您使用体验，请勿输入过大数据，这里我们的限制为20*20
+                    <br>
+                    <hr>
+                    棋盘设计:
+                    <br>
+                    棋盘行数:<input type="number" name="row" id="row"  min="0" max="20" />
+                    棋盘列数:<input type="number" name="column" id="column"  min="0" max="20"/>
+                    <hr>
+                    原始起跳点:
+                    <br>
+                    起跳点所在行:<input type="number" name="fromRow" id="fromRow"  min="0" max="20" />
+                    起跳点所在列:<input type="number" name="fromColumn" id="fromColumn"  min="0" max="20"/>
+                    <br>
+                    <input type="submit" value="确定" onclick="main()"/>
+                    </form>
 
-              function r(){
-                document.write(a);
-                document.write(b);
-              }
-             
-            </script>
-        </body>
+
+                <script>
+                    var direction=8;    //跳跃方向
+                    var MAX_STEP=50;  //最大步数
+                    var num=0;
+                    var path=new Array(MAX_STEP + 1); 
+
+                    
+                    for(var i=0;i<(MAX_STEP+1);i++){
+                        path[i]=new Array(2);
+                    }//存路径
+                    var dx=new Array( 0, 1, 2, 2, 1, -1, -2, -2, -1);//表示方向
+                    var dy=new Array( 0, 2, 1, -1, -2, 2, 1, -1, -2);//表示方向
+                   
+                    
+                    function Path(MAX_X, MAX_Y, step,xy){
+                        for (var i = 0; i < MAX_Y;i++)
+                        for (var j = 0; j < MAX_X; j++)
+                            xy[i][j] = 0;
+                        for (var i = 1; i < step; i++){
+                            xy[path[i][1]][path[i][0]] = 1;
+                        }
+                    }
+
+
+                    function Judgment(x, y, xy){
+                        var judge = false;
+
+                        if (xy[y][x]!=0)//重复结点，错误路径
+                            judge = true;	
+                        else
+                            xy[y][x] = 1;
+                        return judge;//false为可行路径
+                    }
+
+
+                    function Jump( MAX_X, MAX_Y,x,y,step,xy){
+                        var t1, t2, t3, t4;
+                        var x1, y1;
+
+                        Path(MAX_X, MAX_Y,step,xy);
+                        for (var k = 1; k <= direction; k++){
+                            //朝八个方向中的某个方向跳跃
+                            x1 = x + dx[k];
+                            y1 = y + dy[k];
+
+                            //跳出边界，进入下一种路径的查找
+                            if (x1 > MAX_X || y1 > MAX_Y || x1 < 0 || y1 < 0)
+                                continue;
+
+                            t1 = (x1 >= 0) && (x1 <= MAX_X);//左右边界内
+                            t2 = (y1 >= 0) && (y1 <= MAX_Y);//上下边界内
+                            //边界
+                           
+                            t3 = (x1 == path[0][0]);
+                            t4 = (y1 == path[0][1]);
+
+                            if (t1 && t2){//在棋盘内
+                                //记录位置
+                                if (!Judgment(x1, y1,xy)){//返回false表示没有重复，可以继续寻找路径
+                                    //continue;
+                                    path[step][0] = x1;
+                                    path[step][1] = y1;
+
+                                  
+                                    if (t3 && t4){
+                                        num++;
+                                        document.write("方案"+num+":");
+
+                                        for (var i = 0; i <= step; i++){
+                                            document.write( "("+path[i][0]+","+path[i][1]+")");
+                                            if (i != step)
+                                                document.write(" -> ");
+                                        }//for(i)                                    
+                                        document.write("<br>");
+                                    }//if(t3456)
+                                    else{
+                                        Jump(MAX_X, MAX_Y,x1, y1, step + 1,xy); 
+                                    }//else
+                                }//if (!Judgment(x1, y1))
+                            }//if(t1 && t2)
+                        }//for(k)
+                    }
+
+
+                    function main(){
+                        //初始位置           
+                       
+                        var MAX_X;      //X轴最大边界
+                        var MAX_Y;      //Y轴最大边界
+                        var a,b;
+                      
+                       
+                        MAX_X=document.getElementById("column").value;
+                        MAX_Y=document.getElementById("row").value;
+                        a=path[0][0]=document.getElementById("fromColumn").value;          
+                        b=path[0][1]=document.getElementById("fromRow").value;
+                        document.write(MAX_X,MAX_Y);
+                        document.write(a,b);
+                        
+
+                        if(MAX_X>20 || MAX_Y>20 || a>20 ||b>20 || (a+1)>MAX_X || (b+1)>MAX_Y){
+                          document.write("拒绝服务！请按照规范输入数据");
+                        }
+                        var xy=new Array(MAX_Y+1);
+                        for(var i=0;i<MAX_Y+1;i++){
+                            xy[i]=new Array(MAX_X+1);
+                        }
+                        for(var i=0;i<MAX_Y+1;i++){
+                            for(var j=0;j<MAX_X+1;j++){
+                                xy[i][j]=0;
+                            }
+                        }
+                 
+                        Jump(MAX_X, MAX_Y,0, 0, 1,xy);
+                        document.write("总方案数"+ num);      
+                    }
+
+                </script>
+            </body>
     </html>
 </DOCTYPRE>
