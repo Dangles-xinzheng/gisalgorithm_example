@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html >
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>canvas鼠标画图</title>
+<style>
+    body { background-color:rgba(240, 238, 238, 0.95);}
+    #c1 { background-color: white; }
+</style>
+<script>
+window.onload = function() {
+　　var oC = document.getElementById('c1');
+　　var oCG = oC.getContext('2d');
+　　oC.onmousedown = function(ev) {
+    var ev = ev || window.event;
+    oCG.moveTo(ev.clientX-oC.offsetLeft,ev.clientY-oC.offsetTop); //ev.clientX-oC.offsetLeft,ev.clientY-oC.offsetTop鼠标在当前画布上X,Y坐标
+    document.onmousemove = function(ev) {
+        var ev = ev || window.event;//获取event对象
+        oCG.lineTo(ev.clientX-oC.offsetLeft,ev.clientY-oC.offsetTop);
+        oCG.stroke();
+        };
+    oC.onmouseup = function() {
+        document.onmousemove = null;
+        document.onmouseup = null;
+        };
+　　　　};
+};
+</script>
+</head>
+ 
+<body>
+    <canvas id="c1" width="400px" height="400px"> <!--宽高写在html里，写在css里有问题-->
+        <span>该浏览器不支持canvas内容</span> <!--对于不支持canvas的浏览器显示-->
+    </canvas>
+</body>
+</html>

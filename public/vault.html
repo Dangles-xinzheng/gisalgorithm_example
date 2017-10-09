@@ -1,0 +1,48 @@
+<DOCTYPRE html>
+    <html>
+        <head>
+            <tiltle>
+                跳马
+            </tiltle>
+
+        </head>
+        <body>
+            <!输入框设计>
+            <form action="/test.php" method="get">
+                <br>
+                <hr>
+                棋盘设计:
+                <br>
+                棋盘行数:<input type="number" name="row" id="row"  min="2" max="10" />
+                棋盘列数:<input type="number" name="column" id="column"  min="1" max="10">
+                <hr>
+                原始起跳点:
+                <br>
+                起跳点所在行:<input type="number" name="fromRow" id="fromRow" value=2 min="2" max="10" />
+                起跳点所在列:<input type="number" name="fromColumn" id="fromColumn" value=2 min="1" max="10">
+                <br>
+                <input type="submit" value="确定" onclick="art()"/>
+            </form>
+              
+            
+            <script>
+             var a,b;
+             
+              function art(){
+                
+               a=document.getElementById("row").value;
+               
+               b=document.getElementById("column").value;
+          
+               r();
+              }
+
+              function r(){
+                document.write(a);
+                document.write(b);
+              }
+             
+            </script>
+        </body>
+    </html>
+</DOCTYPRE>

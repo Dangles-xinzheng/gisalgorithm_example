@@ -1,0 +1,73 @@
+<DOCTYPE>
+    <html>
+         <head>
+             <meta charset="gb2312" />
+             <title>画图</title>
+ 
+             <body>
+                 <canvas id="c1" width="1000px" height="600px"> 
+                         <span>Your browserdoes not support the canvas element!</span> 
+                 </canvas>
+                 <input type = "button" name = "Button1" value = "Rect" style="width:100px;height:50px" onclick=" Rect()">
+                 <input type = "button" name = "Button2" value = "Pen"  style="width:100px;height:50px" onclick="Line()">
+                 <input type = "button" name = "Button3" value = "Color" style="width:100px;height:50px" onclick="hanshuming">
+             
+             </body>
+ 
+             <script type="text/javascript">
+                 function Line(){
+                         c1.height=c1.height;
+                         var oC = document.getElementById('c1');
+                     　　var oCG = oC.getContext('2d');
+                     　　oC.onmousedown = function(ev) {
+                             var ev = ev || window.event;
+                             oCG.moveTo(ev.clientX-oC.offsetLeft,ev.clientY-oC.offsetTop); //ev.clientX-oC.offsetLeft,ev.clientY-oC.offsetTop鼠标在当前画布上X,Y坐标
+                             document.onmousemove = function(ev) {
+                                 var ev = ev || window.event;//获取event对象
+                                 oCG.lineTo(ev.clientX-oC.offsetLeft,ev.clientY-oC.offsetTop);
+                                 oCG.stroke();
+                             }
+                             oC.onmouseup = function() {
+                                 document.onmousemove = null;
+                                 document.onmouseup = null;
+                             }
+                     　　}
+                 }
+ 
+                 function Rect(){
+                         c1.height=c1.height;
+                         var oC = document.getElementById('c1');
+                     　　var oCG = oC.getContext('2d');
+                         var startx;
+                         var starty;var endx;var endy;
+ 
+ 
+                     　　oC.onmousedown = function(ev) {
+                             var ev = ev || window.event;
+                             oCG.moveTo(ev.clientX-oC.offsetLeft,ev.clientY-oC.offsetTop); //ev.clientX-oC.offsetLeft,ev.clientY-oC.offsetTop鼠标在当前画布上X,Y坐标
+                             //startX = ev.clientX-oC.offsetLeft;
+                              //startY = ev.clientY-oC.offsetTop;
+ 
+                             document.onmousemove = function(ev) {
+                                 var ev = ev || window.event;//获取event对象
+                                 startx = ev.clientX-oC.offsetLeft;
+                                 starty = ev.clientY-oC.offsetTop;
+                             }
+                             oC.onmouseup = function() {
+                                 endx = ev.clientX-oC.offsetLeft;
+                                 endx = ev.clientY-oC.offsetTop;
+                             }
+                             oCG.lineTo(endx,starty);
+                             oCG.lineTo(endx,starty);
+                             oCG.lineTo(startx,endy);
+                             ocg.stroke();
+                     　　}
+                     }
+             </script>   
+         </head>
+         <body>
+             <p>点击选择绘制矩形或者线条，并选择颜色</p>
+         </body>
+     </html>
+ </DOCTYPE>
+ 
