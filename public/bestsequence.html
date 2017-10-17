@@ -1,0 +1,149 @@
+<DOCTYPE HTML>
+        <html>
+            <head>
+                <title>
+                    最佳工作序列
+                </title>
+    
+                <body>
+                    <form action="/test.php" method="get">
+                        a:<br>
+                        工作时间<input type="number" name="atime" id="atime" value=4 min=0/>
+                        工作期限 <input type="number" name="adead" id="adead" value=10 min=0/>
+                        工作效益<input type="number" name="aprofit" id="aprofit" value=2 min=0/><br>
+                        b:<br>
+                        工作时间<input type="number" name="btime" id="btime" value=3 min=0/>
+                        工作期限<input type="number" name="bdead" id="bdead" value=8 min=0/>
+                        工作效益<input type="number" name="bprofit" id="bprofit" value=3 min=0/><br>
+                        c:<br>
+                        工作时间<input type="number" name="ctime" id="ctime" value=2 min=0/>
+                        工作期限<input type="number" name="cdead" id="cdead" value=4 min=0/>
+                        工作效益<input type="number" name="cprofit" id="cprofit" value=3 min=0/><br>
+                        d:<br>
+                        工作时间<input type="number" name="dtime" id="dtime" value=1 min=0/>
+                        工作期限<input type="number" name="ddead" id="ddead" value=2 min=0/>
+                        工作效益<input type="number" name="dprofit" id="dprofit" value=6 min=0/>
+                        <br>
+                        <input type="submit" value="确定" onclick="main()"/>
+                    </form>
+    
+                    <script>
+                        function job(id,time,dead,profit){
+                            this.id=id;
+                            this.time=time;
+                            this.dead=dead;
+                            this.profit=profit;
+                        }
+                        
+                        function main(){
+                            var atime,adead,aprofit;
+                            var btime,bdead,bprofit;
+                            var ctime,cdead,cprofit;
+                            var dtime,ddead,dprofit;
+                            
+                            atime=document.getElementById("atime").value;
+                            adead=document.getElementById("adead").value;
+                            aprofit=document.getElementById("aprofit").value;
+                            btime=document.getElementById("btime").value;
+                            bdead=document.getElementById("bdead").value;
+                            bprofit=document.getElementById("bprofit").value;
+                            ctime=document.getElementById("ctime").value;
+                            cdead=document.getElementById("cdead").value;                   
+                            cprofit=document.getElementById("cprofit").value;
+                            dtime=document.getElementById("dtime").value;
+                            ddead=document.getElementById("ddead").value;
+                            dprofit=document.getElementById("dprofit").value;
+                            
+                            
+                            var jobarr = new Array();
+                            var job1 = new job('a', atime, adead, aprofit);
+                            var job2 = new job('b', btime, bdead, bprofit );
+                            var job3 = new job('c', ctime, cdead, cprofit );
+                            var job4 = new job('d', dtime, ddead, dprofit);
+                           
+                            jobarr[0] = job1;
+                            jobarr[1] = job2;
+                            jobarr[2] = job3;
+                            jobarr[3] = job4;
+                            
+                            document.write("最佳工作序列： <br>");
+                            //对工作表按照效益进行排序，采用冒泡排序;效益相同，按照期限大小排序
+                            bubbleSort(jobarr);
+                            //最佳工作排序算法
+                            bestsq(jobarr);
+                        }
+    
+                        function bubbleSort(jobarr) {
+                            var len = jobarr.length;
+                            //按照效益排序
+                            for (var i = 0; i < len; i++) {
+                                for (var j = 0; j < len - 1 - i; j++) {
+                                    if (jobarr[j].profit < jobarr[j+1].profit) {        //相邻元素两两对比
+                                        var temp = jobarr[j+1];        //元素交换
+                                        jobarr[j+1] = jobarr[j];
+                                        jobarr[j] = temp;
+                                    }
+                                }
+                            }
+                           //效益相同的元素，期限长的往后排
+                           for (var i = 0; i < len-1; i++) {
+                               if(jobarr[i].profit == jobarr[i+1].profit && jobarr[i+1].dead < jobarr[i].dead){
+                                    var temp = jobarr[i+1];        //元素交换
+                                    jobarr[i+1] = jobarr[i];
+                                    jobarr[i] = temp;
+                               }
+                           }
+    
+                            return jobarr;
+                        }
+
+                        function bestsq(jobarr){
+                            var result =new Array();//结果存储
+                            var deadtime;//当前工作期限
+                            var time;//当前工作时间
+                            var flag = 0;//
+                            var len = jobarr.length;
+                            
+                            var timesum=0;
+                            for(var i=0;i<len;i++){
+                                timesum+=jobarr[i].time;
+                            }
+                            for(var i=0;i<timesum;i++){
+                                result[i]=-1;
+                            }
+                            
+                            for(var i=0;i<len;i++){
+                                deadtime=jobarr[i].dead-1;
+                                time=jobarr[i].time;
+                                if(result[deadtime]==-1){//当天没有工作
+                                    result[deadtime]=i;
+                                    time--;
+                                }
+                                for(var j=deadtime-1;j>= 0;j--){//向数组前找
+                                    if(!time){//添加完毕
+                                        break;
+                                    }
+                                    if(result[j]==-1){
+                                        result[j]=i;
+                                        time--;    
+                                    }
+                                }
+                                if(time){
+                                    document.write("对于工作" + jobarr[i].id + "，在整体效益驱动下，将下无法完成！")
+                                }
+                            }
+                            
+                            for(var k=0;k<timesum;k++){
+                                if(k<10){
+                                    document.write("第" + (k+1) + "天：");
+                                    document.write(jobarr[result[k]].id);
+                                    document.write("<br>");
+                               }
+                            }
+                        }
+
+                    </script>
+                </body>
+            </head>
+        </html>
+    </DOCTYPE> 
