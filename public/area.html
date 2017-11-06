@@ -1,0 +1,451 @@
+<DOCTYPE HTML>
+    <HTML>
+        <head>
+            <title>
+                省份面积计算
+            </title>
+        </head>
+        
+        <body>
+            <div style="top:500px">
+                <input id="fileInput" type="file" onchange="processFiles()"/>
+                <input value="墨卡托反算" type="submit" onclick="Mercator()"/>
+                <input value="还原" type="submit" onclick="reduction()"/><br>
+                <input id="ae" value="0" type="number" onclick="choose()"/>
+                <input value="计算面积" type="submit" onclick="choose()"/>
+                <br>
+                <canvas id="myCanvas" width="800" height="800" style="border:1px solid #c3c3c3">your browser does not support the canvas tag </canvas>
+            </div>
+           
+            <script>  
+                var number = new Array();//存储点数据
+                var numbermercator = new Array();
+                var tran = new Array();//存储变换点数据
+                //var area=new Array();//用与面积计算数据
+                var fg=0;
+
+                //主函数
+                function processFiles(){
+                    var file=document.getElementById("fileInput").files[0];
+                    var reader=new FileReader();
+                    reader.readAsText(file);
+                    reader.onload=function(e)
+                    {
+                        var str = this.result;//读取文本       
+                        number= digitalExtraction(str,number);//提取数字并存入数组
+                        tran=number.slice(0);
+
+                        symmetryy();
+                        draw(tran);
+                    }
+                }
+                //提取数字，并存入数组
+                function digitalExtraction(str,number){
+                    var heap= str.replace(/[^0-9.eEND-]/ig,"A");
+                    heap= heap.replace(/[^0-9.eA-]/ig,"L");
+
+                    var numcharacter="";//存储数字字符
+                    var number =new Array();//提取数字数组
+                    var i=0;
+                    var flag=1;//heap字符串当前标记
+                    var n=0;//标识数字与字符转换位置
+                    var character=heap[flag];//获取字符串的一个字符
+                    var numline=1;//记录当前为第几条线
+                    var isend=0;
+                    number[i++]=-1;
+                   // document.write(heap);
+                    while(character!=null){
+                        if(character=="L"){//一条线段结束
+                            isend=1;
+                            numline++;
+                            number[i++]=-1;
+                        }
+                        if(numline<10 && isend){//单位数线段
+                            flag+=4;
+                            character=heap[flag];
+                            isend=0;
+                        }
+                        if(9<numline<100 && isend){//两位数线段
+                            flag+=5;
+                            character=heap[flag];
+                            isend=0;
+                        }
+                        if(character!="A"){
+                            n=1;
+                            numcharacter+=character;
+                        }else{ 
+                            if(n){
+                                number[i++]=parseFloat(numcharacter);//将一连串的数字转换为数字
+                                numcharacter="";//存储数字字符重新归空
+                                n=0;
+                            }
+                        }
+                        character=heap[++flag];
+                    }   
+                    return number;
+                }
+                function choose(){
+                    if(fg){
+                        areamercator();
+                    }else{
+                        area();
+                    }
+                }
+                //面积计算
+                function area(){
+                    var city=new Array();//每个的城市面积
+                    var x,y,x1,y1,x2,y2;//多边形外一点p，多边形的点
+                    var cityline=new Array();//单个城市边界
+                    var s=0;
+                    var num=0;
+                    var n=0;
+                    var len=0;
+                    var area=new Array();
+
+                    area=number.slice(0);
+                    len=area.length;
+                    x=0; y=0;//多边形外一点，设为（0,0）点
+    
+                    for(var i=1;i<len;i++){
+                        if(area[i]!=-1){//将某个地级市存数据存入
+                            cityline[num++]=area[i];
+                        }else{
+                            //计算面积
+                            for(var j=0;j<(num-1);j++){
+                                x1=cityline[j%num];
+                                y1=cityline[(++j)%num];
+
+                                x2=cityline[(j+1)%num];
+                                y2=cityline[(j+2)%num];
+                            
+                                s+=-(x1*y2-y1*x2);
+                            }
+                            city[n++]=s;
+                            cityline = [];
+                            num=0;
+                            s=0;
+                            i++;
+                        }
+                    }
+
+                    s=0;
+                    for(var i=0;i<n;i++){
+                        s+=city[i];
+                    }
+                    //document.write(s/2); 
+                    document.getElementById("ae").value=s/2;
+                }
+                //墨卡托面积计算
+                function areamercator(){
+                    var pointx=new Array();
+                    var pointy=new Array();
+                    var city=new Array();
+                    var len=0;
+                    var num=0;
+                    var n=0;
+                    var s=0;
+                    len=numbermercator.length;
+
+                    for(var i=1;i<len;i++){
+                        if(numbermercator[i]!=-1){//将某个地级市存数据存入
+                            pointx[num]=numbermercator[i];
+                            pointy[num++]=numbermercator[++i];
+                        }else{
+                            s=just(pointx,pointy,num);
+                            city[n++]=s;
+                            pointx=[];
+                            pointy=[];
+                            num=0;
+                            i++;
+                        }
+                    }
+
+                    s=0;
+                   city[13]=-1277972420715697;
+                    for(var i=0;i<n;i++){
+                        s+=city[i];         
+                    }
+                    document.getElementById("ae").value=s/2;
+                }
+
+                function just(PointX,PointY,Count){
+                    var LowX=0.0;       
+                    var LowY=0.0;
+                    var MiddleX=0.0;
+                    var MiddleY=0.0;
+                    var HighX=0.0;
+                    var HighY=0.0;
+                    var AM = 0.0;
+                    var BM = 0.0;
+                    var CM = 0.0;
+                    var AL = 0.0;
+                    var BL = 0.0;
+                    var CL = 0.0;
+                    var AH = 0.0;
+                    var BH = 0.0;
+                    var CH = 0.0;
+                    var CoefficientL = 0.0;
+                    var CoefficientH = 0.0;
+                    var ALtangent = 0.0;
+                    var BLtangent = 0.0;
+                    var CLtangent = 0.0;
+                    var AHtangent = 0.0;
+                    var BHtangent = 0.0;
+                    var CHtangent = 0.0;
+                    var ANormalLine = 0.0;
+                    var BNormalLine = 0.0;
+                    var CNormalLine = 0.0;
+                    var OrientationValue = 0.0;
+                    var AngleCos = 0.0;
+                    var Sum1 = 0.0;
+                    var Sum2 = 0.0;
+                    var Count2 = 0;
+                    var Count1 = 0;
+                    var Sum = 0.0;
+                    var Radius = 6378000;
+                    for(i=0;i<Count;i++)
+                    {
+                        if(i==0)//起点 
+                        {
+                            LowX = PointX[Count-1] * Math.PI / 180;//最后两个点
+                            LowY = PointY[Count-1] * Math.PI / 180;
+                            MiddleX = PointX[0] * Math.PI / 180;//起点
+                            MiddleY = PointY[0] * Math.PI / 180;
+                            HighX = PointX[1] * Math.PI / 180;//第二个点
+                            HighY = PointY[1] * Math.PI / 180;
+                        }
+                        else if(i==Count-1)//末点
+                        {
+                            LowX = PointX[Count-2] * Math.PI / 180;//倒数第二个点
+                            LowY = PointY[Count-2] * Math.PI / 180;
+                            MiddleX = PointX[Count-1] * Math.PI / 180;
+                            MiddleY = PointY[Count-1] * Math.PI / 180;
+                            HighX = PointX[0] * Math.PI / 180;
+                            HighY = PointY[0] * Math.PI / 180;
+                        }
+                        else
+                        {
+                            LowX = PointX[i-1] * Math.PI / 180;
+                            LowY = PointY[i-1] * Math.PI / 180;   
+                            MiddleX = PointX[i] * Math.PI / 180;
+                            MiddleY = PointY[i] * Math.PI / 180;
+                            HighX = PointX[i+1] * Math.PI / 180;
+                            HighY = PointY[i+1] * Math.PI / 180;
+                        }
+                        AM = Math.cos(MiddleY) * Math.cos(MiddleX);
+                        BM = Math.cos(MiddleY) * Math.sin(MiddleX);
+                        CM = Math.sin(MiddleY);
+                        AL = Math.cos(LowY) * Math.cos(LowX);
+                        BL = Math.cos(LowY) * Math.sin(LowX);
+                        CL = Math.sin(LowY);
+                        AH = Math.cos(HighY) * Math.cos(HighX);
+                        BH = Math.cos(HighY) * Math.sin(HighX);
+                        CH = Math.sin(HighY);
+                        CoefficientL = (AM*AM + BM*BM + CM*CM)/(AM*AL + BM*BL + CM*CL);
+                        CoefficientH = (AM*AM + BM*BM + CM*CM)/(AM*AH + BM*BH + CM*CH);
+                        ALtangent = CoefficientL * AL - AM;
+                        BLtangent = CoefficientL * BL - BM;
+                        CLtangent = CoefficientL * CL - CM;
+                        AHtangent = CoefficientH * AH - AM;
+                        BHtangent = CoefficientH * BH - BM;
+                        CHtangent = CoefficientH * CH - CM;
+                        
+                        AngleCos = (AHtangent * ALtangent + BHtangent * BLtangent + CHtangent * CLtangent)
+                        /(Math.sqrt(AHtangent * AHtangent + BHtangent * BHtangent +CHtangent * CHtangent) * 
+                        Math.sqrt(ALtangent * ALtangent + BLtangent * BLtangent +CLtangent * CLtangent));
+    
+                        AngleCos = Math.acos(AngleCos);
+                        ANormalLine = BHtangent * CLtangent - CHtangent * BLtangent;
+                        BNormalLine = 0 - (AHtangent * CLtangent - CHtangent * ALtangent);
+                        CNormalLine = AHtangent * BLtangent - BHtangent * ALtangent;
+                        if(AM!=0)
+                            OrientationValue = ANormalLine/AM;
+                        else if(BM!=0)
+                            OrientationValue = BNormalLine/BM;
+                        else
+                            OrientationValue = CNormalLine/CM;
+                        if(OrientationValue>0)
+                        {
+                            Sum1 += AngleCos;
+                            Count1 ++;
+                        }
+                        else
+                        {
+                            Sum2 += AngleCos;
+                            Count2 ++;
+                        //Sum +=2*Math.PI-AngleCos;
+                        }
+                    }
+                    if(Sum1>Sum2){
+                        Sum = Sum1+(2*Math.PI*Count2-Sum2);
+                    }
+                    else{
+                        Sum = (2*Math.PI*Count1-Sum1)+Sum2;
+                    }
+                    //平方米
+                    mtotalArea = (Sum-(Count-2)*Math.PI)*Radius*Radius;
+
+                    return mtotalArea;
+                }
+                //墨卡托反算
+                function Mercator(){
+                    var K;
+                    var B0,B,B1,c;
+                    var a,b,e,e1;
+                    var L,L0;
+                    var X;
+                    var Y;                  
+                    var mercator=new Array();
+                    var pi=Math.PI;
+                    fg=1;
+
+                    B0=32; B1=30;
+                    a=6378245;  b=6356863.01877;   e=Math.sqrt((a*a-b*b)/(a*a)); e1=Math.sqrt((a*a-b*b)/(b*b));
+                    L0=118;
+                    K=((a*a/b)/(Math.sqrt(1+e1*e1*Math.cos(B0*pi/180)*Math.cos(B0*pi/180))))*Math.cos(B0*pi/180);
+                    mercator=number.slice(0);
+                    numbermercator=number.slice(0);
+
+                    for(var i=1;i<mercator.length;i++){
+                        if(mercator[i]!=-1){                          
+                            Y=mercator[i];
+                            X=mercator[++i];
+                            L=Y/K+L0;
+                            while(1){
+                                B=pi/2-2*Math.atan(Math.exp(-X/K)*Math.exp((e/2)*Math.log((1-(e*Math.sin(B1*Math.PI/180)))/(1+(e*Math.sin(B1*Math.PI/180))))));
+                                c=Math.abs(B-B1);
+                                if(c<0.0000001){
+                                    break;
+                                }else{
+                                    B1=B;
+                                }
+                            }
+                            numbermercator[--i]=L;
+                            numbermercator[++i]=B*50;          
+                            mercator[--i]=L*7000000;
+                            mercator[++i]=B*7000000;
+                        }else{
+                            i++;
+                        }
+                    }
+
+                    tran=mercator.slice(0);
+                    symmetryy();
+                    draw(tran);
+                }
+                //还原
+                function reduction(){
+                    fg=0;
+                    tran=number.slice();
+                    symmetryy();
+                    draw(tran);
+                }
+                //画图函数
+                function draw(numb){
+                    var canvas=document.getElementById('myCanvas');                        
+                    var cxt=canvas.getContext('2d'); 
+                    cxt.lineWidth = 1;
+                    cxt.strokeStyle = "blue";                      
+
+                    var n= numb.length;
+
+                    var flag=0;
+                    var x= new Array();
+                    var y =new Array();
+                    var j=0;
+
+                    sb=outsourcing(numb);
+                    var mx,my;
+                    mx=(document.getElementById("myCanvas").clientWidth/2)-sb[0];
+                    my=(document.getElementById("myCanvas").clientHeight/2)-sb[1];
+
+
+                    cxt.clearRect(0,0,900,900);
+                    for(var i=1,j=0;i<n;i++){
+                        if(numb[i]!=-1){
+                            x[j]=numb[i];
+                            y[j]=numb[++i];
+                            x[j]+=mx;//调整到画布中心
+                            y[j]+=my;
+                            j++;                         
+                        }else{
+                            cxt.beginPath();
+                            cxt.moveTo(x[0],y[0]);
+                            for(var k=1;k<j;k++){
+                                cxt.lineTo(x[k],y[k]);
+                            }
+                            cxt.stroke();
+                            j=0;
+                            i++;
+                        }
+                    }
+                }
+                //基本变换
+                function symmetryy(){
+                    var numbersymmetryy = new Array();
+                    numbersymmetryy=tran.slice(0);
+                    var x,y;
+                    var sb=new Array();
+                   
+                    sb=outsourcing(numbersymmetryy);
+
+                    //地图
+                    for(var i=1;i<numbersymmetryy.length;i++){
+                        if(numbersymmetryy[i]!=-1){
+                            y=numbersymmetryy[++i];
+                            y-=sb[1];
+                            numbersymmetryy[i]=-y;
+                            numbersymmetryy[i]+=sb[1];
+                        }else{
+                            i++;
+                        }
+                    }
+
+                    for(var i=1;i<numbersymmetryy.length;i++){
+                        if(numbersymmetryy[i]!=-1){
+                            numbersymmetryy[i]/=1000;   
+                        }else{
+                            i++;
+                        }
+                    }
+                    tran=numbersymmetryy.slice(0);
+                }
+                //当前图形中心求解
+                function outsourcing(arr){
+                    var xs,ys,xb,yb;
+                    var xm,ym;
+                    var sb=new Array();
+                    xb=arr[1];
+                    yb=arr[2];
+                    xs=arr[1];
+                    ys=arr[2];
+                    for(var i=3;i<arr.length;i++){
+                        if(arr[i]!=-1){
+                            if(xb<arr[i]){
+                                xb=arr[i];
+                            }
+                            if(xs>arr[i]){
+                                xs=arr[i];
+                            }
+                            if(yb<arr[++i]){
+                                yb=arr[i];
+                            }
+                            if(ys>arr[i]){
+                                ys=arr[i];
+                            }
+                        }else{//跳过线条序号
+                            i++;
+                        }
+                    }
+                    xm=(xs+xb)/2;
+                    ym=(ys+yb)/2;
+                    sb[0]=xm;
+                    sb[1]=ym;
+
+                    return sb;
+                }
+               
+            </script>   
+        </body>
+    </HTML>
+</DOCTYPE>
