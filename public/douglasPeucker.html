@@ -1,0 +1,347 @@
+ <DOCTYPE HTML>
+     <html>
+         <head>
+             <title>
+                道格拉斯-普克算法
+             </title>
+             <link rel='stylesheet' href='/stylesheet/style.css'/>
+         </head>
+         <body>
+             <div>
+                <input id="fileInput" type="file" onchange="processFiles()"/>
+                <input id="ae" value="" type="text" />
+                <input value="压缩" type="submit" onclick="douglasPeucker()"/>建议数据范围为0.0001~5其中0.015为50%压缩<br>     
+                压缩率:<input id="ratio" value="" type="text" /><br>
+                <input value="还原" type="submit" onclick="reduction()"/>
+                
+                <br>
+                <canvas id="myCanvas" width="800" height="800" style="border:1px solid #c3c3c3">your browser does not support the canvas tag </canvas>
+             </div>
+                
+
+             <script>
+                var number = new Array();//存储原始点数据
+                var numberdp = new Array();//压缩数据
+                var tran = new Array();//临时存储
+
+                //主函数
+                function processFiles(){
+                    var file=document.getElementById("fileInput").files[0];
+                    var reader=new FileReader();
+                    reader.readAsText(file);
+                    reader.onload=function(e)
+                    {
+                        var str = this.result;//读取文本       
+                        number= digitalExtraction(str,number);//提取数字并存入数组
+                        tran=number.slice(0);
+
+                        Lambert();
+                    }
+                }
+                //提取数字，并存入数组
+                function digitalExtraction(str,number){
+                    var heap= str.replace(/[^0-9.eEND-]/ig,"A");
+                    heap= heap.replace(/[^0-9.eA-]/ig,"L");
+
+                    var numcharacter="";//存储数字字符
+                    var number =new Array();//提取数字数组
+                    var i=0;
+                    var flag=1;//heap字符串当前标记
+                    var n=0;//标识数字与字符转换位置
+                    var character=heap[flag];//获取字符串的一个字符
+                    var numline=1;//记录当前为第几条线
+                    var isend=0;
+                    number[i++]=-1;
+                   // document.write(heap);
+                    while(character!=null){
+                        if(character=="L"){//一条线段结束
+                            isend=1;
+                            numline++;
+                            number[i++]=-1;
+                        }
+                        if(numline<10 && isend){//单位数线段
+                            flag+=4;
+                            character=heap[flag];
+                            isend=0;
+                        }
+                        if(9<numline<100 && isend){//两位数线段
+                            flag+=5;
+                            character=heap[flag];
+                            isend=0;
+                        }
+                        if(99<numline<1000 && isend){//两位数线段
+                            flag+=6;
+                            character=heap[flag];
+                            isend=0;
+                        }
+                        if(999<numline<10000 && isend){//两位数线段
+                            flag+=7;
+                            character=heap[flag];
+                            isend=0;
+                        }
+                        if(character!="A"){
+                            n=1;
+                            numcharacter+=character;
+                        }else{ 
+                            if(n){
+                                number[i++]=parseFloat(numcharacter);//将一连串的数字转换为数字
+                                numcharacter="";//存储数字字符重新归空
+                                n=0;
+                            }
+                        }
+                        character=heap[++flag];
+                    }   
+                    return number;
+                }
+                //压缩
+                function douglasPeucker(){
+                    var len=number.length;
+                    var pointx=new Array();
+                    var pointy=new Array();
+                    var num=0;
+                    var f=0;
+                    var th;
+                    th=document.getElementById("ae").value;
+                    for(var i=1;i<len;i++){
+                        if(number[i]!=-1){
+                            pointx[num]=number[i];
+                            pointy[num++]=number[++i];
+                        }else{
+                            numberdp.push(f++);
+                            just(0,parseInt(num/2),pointx,pointy,th);
+                            just(parseInt(num/2)+1,num-1,pointx,pointy,th);
+                            numberdp.push(-1);
+                            pointx=[];
+                            pointy=[];
+                            num=0;
+                            i++;
+                        }
+                    }
+
+                    //压缩率
+                    document.getElementById("ratio").value=(number.length-numberdp.length)/number.length;
+
+                    tran=numberdp.slice(0);
+                    numberdp=[];
+                    Lambert();
+
+                }
+                //压缩核心
+                function just(head,tail,px,py,th){ 
+                    var max=0;
+                    var x1,y1,x2,y2,x3,y3;
+                    var s,d,d1,d2;
+                    var mark;//标记最远点
+                    mark=0;
+                    d=-1;
+
+                    x1=px[head];      y1=py[head];
+                    x2=px[tail];  y2=py[tail];
+                    //循环i和j之间距离直线ij最大的点  
+                    for(var i=head+1;i<tail;i++){
+                        x3=px[i];  y3=py[i];
+                        s=Math.abs((x1-x3)*(y2-y3)-(x2-x3)*(y1-y3));
+                        d1=Math.sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2));
+                        d2=s/d1;
+                        if(d2>d && d2>th){
+                            d=d2;
+                            mark=i;
+                        } 
+                    }
+
+                    if(mark==0){//中间没有远点
+                        numberdp.push(px[head]);
+                        numberdp.push(py[head]);
+                        numberdp.push(px[tail]);
+                        numberdp.push(py[tail]);
+                        return;
+                    }
+                    //四个点情况
+                    else if(head+1==mark && tail-2!=mark)//第二个点且不是倒数第三个点
+                    {
+                        just(mark+1,tail,px,py,th);
+                    }
+                    else if(tail-2==mark && head+1!=mark)//倒数第三个点且不是第二个点
+                    {
+                        just(head,mark+1,px,py,th);
+                    }
+                    else if(tail-2==max && head+1==max)//第二个点且是倒数第三个点
+                    {
+                        numberdp.push(px[mark]);
+                        numberdp.push(py[mark]);
+                        numberdp.push(px[mark+1]);
+                        numberdp.push(py[mark+1]);
+                        return;
+                    }
+                    else
+                    {
+                        just(head,mark,px,py,th);
+                        just(mark+1,tail,px,py,th);
+                    }
+                }
+                //兰伯特
+                function Lambert(){
+                    var lambert=new Array();
+                    var m,m1,m2;
+                    var n;
+                    var t,t1,t2;
+                    var F;
+                    var O;
+                    var r0,r;
+                    var L,L0;
+                    var a,b,e;
+                    var B0,B1,B2;
+                    var pi=Math.PI;
+                    
+                    fg=1;
+                    a=6378245; b=6356863.01877;  e=Math.sqrt(a*a-b*b)/a; 
+                    B0=0;  B1=20;  B2=40;  L0=105;
+                    m1=Math.cos(B1*pi/180)/Math.sqrt(1-e*e*Math.sin(B1*pi/180)*Math.sin(B1*pi/180));
+                    m2=Math.cos(B2*pi/180)/Math.sqrt(1-e*e*Math.sin(B2*pi/180)*Math.sin(B2*pi/180));
+                    t1=Math.tan(pi/4-B1*pi/360)/Math.pow((1-e*Math.sin(B1*pi/180))/(1-e*Math.sin(B1*pi/180)),e/2);
+                    t2=Math.tan(pi/4-B2*pi/360)/Math.pow((1-e*Math.sin(B2*pi/180))/(1-e*Math.sin(B2*pi/180)),e/2);
+                    n=Math.log(m1/m2)/Math.log(t1/t2);
+                    F=m1/(n*Math.pow(t1,n));
+                    r0=a*F;
+
+                    lambert=tran.slice(0);
+                    for(var i=1;i<lambert.length;i++){
+                        if(lambert[i]!=-1){                          
+                            L=lambert[i];
+                            B=lambert[++i];
+                            t=Math.tan(pi/4-B*pi/360)/Math.pow((1-e*Math.sin(B*pi/180))/(1-e*Math.sin(B*pi/180)),e/2);
+                            r=a*F*Math.pow(t,n);
+                            O=n*(L-L0);
+
+                            X=r0-r*Math.cos(O*pi/180);
+                            Y=r*Math.sin(O*pi/180);
+
+                            lambert[--i]=Y/100000;
+                            lambert[++i]=X/100000;
+                        }else{
+                            i++;
+                        }
+                    }
+                    tran=lambert.slice(0);
+                    symmetryy();
+                    draw(tran);
+                }
+                //还原
+                function reduction(){
+                    fg=0;
+                    tran=number.slice();
+                    Lambert();
+                }
+                //画图函数
+                function draw(numb){
+                    var canvas=document.getElementById('myCanvas');                        
+                    var cxt=canvas.getContext('2d'); 
+                    cxt.lineWidth = 1;
+                    cxt.strokeStyle = "blue";                      
+
+                    var n= numb.length;
+
+                    var flag=0;
+                    var x= new Array();
+                    var y =new Array();
+                    var j=0;
+
+                    sb=outsourcing(numb);
+                    var mx,my;
+                    mx=(document.getElementById("myCanvas").clientWidth/2)-sb[0];
+                    my=(document.getElementById("myCanvas").clientHeight/2)-sb[1];
+
+
+                    cxt.clearRect(0,0,900,900);
+                    for(var i=1,j=0;i<n;i++){
+                        if(numb[i]!=-1){
+                            x[j]=numb[i];
+                            y[j]=numb[++i];
+                            x[j]+=mx;//调整到画布中心
+                            y[j]+=my;
+                            j++;                         
+                        }else{
+                            cxt.beginPath(); 
+                            cxt.moveTo(x[0],y[0]);
+                            for(var k=1;k<j;k++){
+                                cxt.lineTo(x[k],y[k]);
+                            }
+                            cxt.stroke();
+                            j=0;
+                            i++;
+                        }
+                    }
+
+                    cxt.font = "20px 隶书";  
+                    //ctx.fillStyle = "Green";  
+                    cxt.fillText("BY Zheng",document.getElementById("myCanvas").clientWidth-120,document.getElementById("myCanvas").clientHeight-15);  
+
+                }
+                //基本变换
+                function symmetryy(){
+                    var numbersymmetryy = new Array();
+                    numbersymmetryy=tran.slice(0);
+                    var x,y;
+                    var sb=new Array();
+                   
+                    sb=outsourcing(numbersymmetryy);
+
+                    //地图
+                    for(var i=1;i<numbersymmetryy.length;i++){
+                        if(numbersymmetryy[i]!=-1){
+                            y=numbersymmetryy[++i];
+                            y-=sb[1];
+                            numbersymmetryy[i]=-y;
+                            numbersymmetryy[i]+=sb[1];
+                        }else{
+                            i++;
+                        }
+                    }
+
+                    for(var i=1;i<numbersymmetryy.length;i++){
+                        if(numbersymmetryy[i]!=-1){
+                            numbersymmetryy[i]*=10;   
+                        }else{
+                            i++;
+                        }
+                    }
+                    tran=numbersymmetryy.slice(0);
+                }
+                //当前图形中心求解
+                function outsourcing(arr){
+                    var xs,ys,xb,yb;
+                    var xm,ym;
+                    var sb=new Array();
+                    xb=arr[1];
+                    yb=arr[2];
+                    xs=arr[1];
+                    ys=arr[2];
+                    for(var i=3;i<arr.length;i++){
+                        if(arr[i]!=-1){
+                            if(xb<arr[i]){
+                                xb=arr[i];
+                            }
+                            if(xs>arr[i]){
+                                xs=arr[i];
+                            }
+                            if(yb<arr[++i]){
+                                yb=arr[i];
+                            }
+                            if(ys>arr[i]){
+                                ys=arr[i];
+                            }
+                        }else{//跳过线条序号
+                            i++;
+                        }
+                    }
+                    xm=(xs+xb)/2;
+                    ym=(ys+yb)/2;
+                    sb[0]=xm;
+                    sb[1]=ym;
+
+                    return sb;
+                }
+             </script>
+         </body>
+     </html>
+ </DOCTYPE>
