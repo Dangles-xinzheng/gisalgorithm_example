@@ -1,0 +1,163 @@
+<DOCTYPE HTML>
+    <HTML>
+        <head>
+            <title>
+                四叉树四进制M码
+            </title>
+        </head>
+        <body>
+            <div>
+                <input id="fileInput" type="file" onchange="processFiles()"/>
+                <input id="quadtree" type="submit" value="四叉树四进制M码"  onclick="tree()"/><br><br>
+                <textarea id="write"  rows="12" cols="35" style="font-size:20pt"> </textarea>
+                <textarea id="rewrite"  rows="12" cols="35" style="font-size:20pt"> </textarea>
+            </div>
+
+            <script>
+                var number = new Array();
+                var row=0;//矩阵行列号
+                var column=0;
+                
+                function morton(address,deep,value){
+                    this.address=address;
+                    this.deep=deep;
+                    this.value=value;
+                }
+
+                var M=new Array();//编码存储位置
+                //主函数
+                function processFiles(){
+                    var file=document.getElementById("fileInput").files[0];
+                    var reader=new FileReader();
+                    reader.readAsText(file);
+                    reader.onload=function(e)
+                    {
+                        var str = this.result;//读取文本       
+                        number=digitalExtraction(str,number);//提取数字并存入数组
+                        display();
+                    }
+                }
+                //提取数字，并存入数组
+                function digitalExtraction(str,number){
+                    //var heap= str.replace(/[^0-9, ]/ig,"A");
+                    
+                    var matrix=new Array();
+                    var c="";
+                    var rec="";
+                    var flag=0;//heap字符串当前标记
+                    var character=str[flag];//获取字符串的一个字符
+                    var rechara="";
+                    var num=0;
+                    while(character!=null){
+                        if(character==" "){
+                            character=str[++flag];
+                        }
+                        else if(character==","){
+                            matrix[num++]=parseFloat(c);
+                            if(num==2){    
+                                rec=flag-1;
+                                rechara=str[rec];
+                                while(rechara!=" "){
+                                    rec--;
+                                    rechara=str[rec];
+                                }
+                                while(rec!=flag){
+                                    rechara+=str[rec++];
+                                }
+                                matrix[num++]=parseFloat(rechara);
+                                
+
+                            }
+                            character=str[++flag]; 
+                            c="";            
+                        }else{
+                            c+=character;
+                            character=str[++flag];
+                        }
+
+                        if(character==null){
+                            matrix[num++]=parseFloat(c);
+                            num=2;
+                        }
+                    }
+                     
+                    row=matrix[0];
+                    column=matrix[1];
+                    for(var i=0;i<row;i++){
+                        number[i]=new Array(column);
+                        for(var j=0;j<column;j++){
+                            number[i][j]=matrix[num++];
+                        }
+                    }
+                    return number;
+                }
+                //显示函数
+                function display(){
+                    document.getElementById("write").value+="原始数据";
+                    for(var i=0;i<row;i++){
+                        document.getElementById("write").value+="\n";
+                        for(var j=0;j<column;j++){
+                            document.getElementById("write").value+=number[i][j]+","+" ";
+                           // document.write(" "+number[i][j]+",  ");
+                        }
+                    }
+                }
+                //显示函数
+                function redisplay(){
+                    document.getElementById("rewrite").value+="四进制Morton编码";
+                    for(var i=0;i<M.length;i++){
+                        document.getElementById("rewrite").value+="\n";
+                        document.getElementById("rewrite").value+=M[i].value+":"+M[i].address+","+M[i].deep+","+M[i].value;
+                    }
+                }
+                //四叉树编码主函数
+                function tree(){
+                    var row_start=0;
+                    var row_end=row;
+                    var column_start=0;
+                    var  column_end=column;
+                    var deep=0;
+                    depth(row_start,row_end,column_start,column_end,deep);//递归进行划分
+                    redisplay();
+                }
+                //递归进行层数划分
+                function depth(row_start,row_end,column_start,column_end,deep){
+                    var rw,cn;
+                    var add;//地址
+
+                    //判断当前矩阵中元素是否全部相同
+                    var element=number[row_start][column_start];//矩阵第一个元素
+                    var mark=false;//标记是否相同
+                    for(var i=row_start;i<row_end;i++){
+                        for(var j=column_start;j<column_end;j++){
+                            if(number[i][j]!=element){
+                                mark=true;
+                                break;
+                            }
+                        }
+                    }
+                    if(mark){//需要继续划分
+                        depth(row_start,(row_start+row_end)/2,column_start,(column_start+column_end)/2,deep+1);
+                        depth(row_start,(row_start+row_end)/2,(column_start+column_end)/2,column_end,deep+1);
+                        depth((row_start+row_end)/2,row_end,column_start,(column_start+column_end)/2,deep+1);
+                        depth((row_start+row_end)/2,row_end,(column_start+column_end)/2,column_end,deep+1);
+                    }else{//不可分
+                        if(deep==3){
+                            rw=parseInt(row_start.toString(2));
+                            cn=parseInt(column_start.toString(2));
+                        }else{
+                            rw=parseInt((row_start/2).toString(2));
+                            cn=parseInt((column_start/2).toString(2));
+                        }
+                        add=rw*2+cn;
+                        var mt=new morton(add,deep,number[row_start][column_start]);
+
+                        M.push(mt);
+
+                    }
+
+                }
+            </script>
+        </body>
+    </HTML>
+</DOCTYPE>
