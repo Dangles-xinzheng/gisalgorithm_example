@@ -1,0 +1,384 @@
+<Doctype>
+    <html>
+        <head>
+            <title>
+                多边形左转算法
+            </title>
+        </head>
+        
+        <body>
+            <div>
+                <input id="fileInput" type="file" onchange="processFiles()"/>
+                <input type="submit" value="左转算法绘制多边形" onclick="turnleft()"/><br>
+                <canvas id="myCanvas" width="600" height="600" style="border:1px solid #c3c3c3">your browser does not support the canvas tag </canvas>
+
+            </div>
+                
+            <script>
+                //弧段结点表
+                function segment(seg,nd){
+                    this.seg=seg;//弧段
+                    this.nd=nd;//结点
+                    this.frequency=0;//记录使用次数
+                    this.direction=0;//0表示正方向，1表示逆方向
+                }
+                //结点弧段表 
+                function point(x,y,seg){
+                    this.x=x;
+                    this.y=y;
+                    this.seg=seg;//弧段
+                }
+                var node=new Array();//结点-弧段表
+                var segmt=new Array();//弧段-结点表
+
+
+                var number=new Array();//原始各点坐标
+                var tran=new Array();
+                //主函数
+                function processFiles(){
+                    var file=document.getElementById("fileInput").files[0];
+                    var reader=new FileReader();
+                    reader.readAsText(file);
+                    reader.onload=function(e)
+                    {
+                        var str = this.result;//读取文本       
+                        number= digitalExtraction(str,number);//提取数字并存入数组
+                        tran=number.slice(0);
+
+                        symmetryy();
+                        sorting(tran);
+                    }
+                }
+                //提取数字，并存入数组
+                function digitalExtraction(str,number){
+                    var heap= str.replace(/[^0-9.eEND-]/ig,"A");
+                    heap= heap.replace(/[^0-9.eA-]/ig,"L");
+
+                    var numcharacter="";//存储数字字符
+                    var number =new Array();//提取数字数组
+                    var i=0;
+                    var flag=1;//heap字符串当前标记
+                    var n=0;//标识数字与字符转换位置
+                    var character=heap[flag];//获取字符串的一个字符
+                    var numline=1;//记录当前为第几条线
+                    var isend=0;
+                    number[i++]=-1;
+                   // document.write(heap);
+                    while(character!=null){
+                        if(character=="L"){//一条线段结束
+                            isend=1;
+                            numline++;
+                            number[i++]=-1;
+                        }
+                        if(numline<10 && isend){//单位数线段
+                            flag+=4;
+                            character=heap[flag];
+                            isend=0;
+                        }
+                        if(9<numline<100 && isend){//两位数线段
+                            flag+=5;
+                            character=heap[flag];
+                            isend=0;
+                        }
+                        if(character!="A"){
+                            n=1;
+                            numcharacter+=character;
+                        }else{ 
+                            if(n){
+                                number[i++]=parseFloat(numcharacter);//将一连串的数字转换为数字
+                                numcharacter="";//存储数字字符重新归空
+                                n=0;
+                            }
+                        }
+                        character=heap[++flag];
+                    }   
+                    return number;
+                }
+                //数据分拣工作，结点弧段数据整理
+                function sorting(num){
+                    var x,y;//点坐标
+                    var a=-1;//当前点所在的弧段
+                    var count=0;//结点数
+                    var flag=false;
+                    var c,d;
+                    //var position;
+                    for(var i=0;i<num.length;i++){
+                        if(isNaN(num[i])){
+                            continue;
+                        }
+                        else if(num[i]!=-1){      
+                            x=num[i];
+                            y=num[++i];
+
+                            //查看结点是否重复出现
+                            for(var j=0;j<node.length;j++){
+                                c=(node[j].x==x);
+                                d=(node[j].y==y);
+                                if(c && d){//有重复点
+                                    node[j].seg.push(a);
+                                    segmt[a].nd.push(j);
+                                    flag=true;
+                                    break;
+                                }
+                            }
+                            //if(node.indexOf(x)>=0 && node.x.indexOf(y)>=0){//重复点
+                            //    positon=node.indexOf(x);
+                             //   node.seg[position].push(a);
+                           // }else{
+                            if(!flag){//无重复点
+                                var nodeseg=new Array();//结点弧段的弧段表
+                                nodeseg.push(a);
+                                var nodept=new point(x,y,nodeseg);
+                                node.push(nodept);
+                                segmt[a].nd.push(count++);
+                            }else{
+                                flag=false;
+                            }
+                            
+                            //segmt[a].nd.push(count++);
+
+                        }else{
+                            a++; 
+                            var jd=new Array();
+                            var hd=new segment(a,jd); 
+                            segmt.push(hd);
+                        }                 
+                    }
+                    segmt.pop();
+                    segmt.pop();
+                } 
+                //左转算法
+                function turnleft(){
+                    var startnode;//弧段起始结点
+                    var arc=0;//当前弧段
+                    var position;//结点号
+                    var dw=0;
+                    var x=new Array();
+                    var y=new Array();
+
+
+                    for(var i=0;i<node.length;i++){
+                        startnode=i;
+
+                        for(var k=0;k<node[i].seg.length;k++){
+                            arc=node[i].seg[k];
+                            if(segmt[arc].frequency<2)
+                                break
+                            
+                        }
+
+                        if(segmt[arc].frequency>=2 || node[i].seg.length==1){
+                                continue;
+                        }
+                        while(arc!=-999){
+                            segmt[arc].frequency++;//使用过一次
+                            
+                            if(segmt[arc].frequency>2){
+                                break;
+                            }
+                            //存储当前所在弧段的坐标点
+                            for(var j=0;j<segmt[arc].nd.length;j++){
+                                if(segmt[arc].direction){
+                                    position=segmt[arc].nd[segmt[arc].nd.length-j-1];
+                                    x.push(node[position].x);
+                                    y.push(node[position].y);
+                                }else{
+                                    position=segmt[arc].nd[j];
+                                    x.push(node[position].x);
+                                    y.push(node[position].y);
+                                }
+                                
+                                if(x.length!=1 && node[position].x==x[0] && node[position].y==y[0]){
+                                    draw(x,y)//todo  绘制
+                                    dw=1;
+                                    break;
+                                }
+                            }
+
+
+                            startnode=position;//更换结点
+                            if(segmt[arc].direction){
+                                segmt[arc].direction=0;//弧段设为反方向
+                            }else{
+                                segmt[arc].direction=1;//弧段设为反方向
+                            }
+                            //segmt[arc].direction=1;//弧段设为反方向
+
+                            if(dw){
+                                dw=0;
+                                x=[];
+                                y=[];
+                                continue;
+                            }else{//一个多边形未画完
+                                arc=angle(arc,position);//查找角度最小的弧段
+                            }
+                            
+                        }
+                        
+
+                        
+                    }
+                }
+                //寻找夹角最小的弧段
+                function angle(arc,position){
+                    var x,y,x1,y1,x2,y2,x3,y3,x4,y4,xx1,xx2;
+                    var pt;//结点号
+                    var ac;//弧段号
+                    var dnum,dx,dy;//方向x,y,判断方向用
+                    var ag=-2;//角度
+                    var reag;
+                    var id=-999;
+                    var flag=-1;
+                    xx1=0;
+                    x1=node[position].x;
+                    y1=node[position].y;
+                    if(segmt[arc].direction){//逆
+                        dnum=segmt[arc].nd[segmt[arc].nd.length-2];//第二个弧段的最后一个结点号
+                        x2=node[dnum].x;
+                        y2=node[dnum].y;
+                    }else{
+                        dnum=segmt[arc].nd[1];//第二个弧段的最后一个结点号
+                        x2=node[dnum].x;
+                        y2=node[dnum].y;
+                    }
+                    x=(x2-x1);   y=(y2-y1);
+                    
+                    for(var i=0;i<node[position].seg.length;i++){
+                        ac=node[position].seg[i];
+                        if(segmt[ac].frequency>2 || ac==arc){
+                            continue;
+                        }
+                        dnum=segmt[ac].nd[segmt[ac].nd.length-1];//第二个弧段的最后一个结点号
+                        dx=node[dnum].x;
+                        dy=node[dnum].y;
+                        if(dx==x1 && dy==y1){//最后一个
+                            //if(segmt[ac].direction){
+                              //  segmt[ac].direction=0;
+                            //}else{
+                                segmt[ac].direction=1;
+                            //}
+                            //segmt[ac].direction=1;
+                            dnum=segmt[ac].nd[segmt[ac].nd.length-2];//第二个弧段的最后一个结点号
+                            x3=node[dnum].x;
+                            y3=node[dnum].y;
+                        }else{
+                            segmt[ac].direction=0;
+                            dnum=segmt[ac].nd[1];//第二个弧段的最后一个结点号
+                            x3=node[dnum].x;
+                            y3=node[dnum].y;
+                        }
+                        x4=(x3-x1);   y4=(y3-y1);
+                        reag=(x*y4+y*x4)/(Math.sqrt(x*x+y*y)*Math.sqrt(x4*x4+y4*y4));
+                        xx2=x*y4-x4*y;
+
+                        if(flag==-1){
+                            flag=1;
+                            id=ac;
+                        }
+                        if(flag==1){
+                            //xx2=x*y4-x4*y;
+                            if(xx2<=xx1){
+                                xx1=xx2;
+                                ag=reag;
+                                id=ac;  
+                            }                       
+                        }
+                    }
+
+                    return id;
+                }
+                //绘制
+                function draw(x,y){
+                    var canvas=document.getElementById("myCanvas");
+                    var cxt=canvas.getContext('2d'); 
+                    cxt.lineWidth = 3;
+                    cxt.strokeStyle = randomColor();  
+
+                    var len=x.length;
+                    cxt.beginPath(); 
+                    cxt.moveTo(x[0],y[0]-200);
+                    for(var i=1;i<len;i++){
+                        cxt.lineTo(x[i],y[i]-200);
+                    }
+                    cxt.stroke();     
+                }
+                //变换
+                 function symmetryy(){
+                    var numbersymmetryy = new Array();
+                    numbersymmetryy=tran.slice(0);
+                    var x,y;
+                    var sb=new Array();
+                   
+                    sb=outsourcing(numbersymmetryy);
+
+                    //地图
+                    for(var i=1;i<numbersymmetryy.length;i++){
+                        if(numbersymmetryy[i]!=-1){
+                            y=numbersymmetryy[++i];
+                            y-=sb[1];
+                            numbersymmetryy[i]=-y;
+                            numbersymmetryy[i]+=sb[1];
+                        }else{
+                            i++;
+                        }
+                    }
+
+                    for(var i=1;i<numbersymmetryy.length;i++){
+                        if(numbersymmetryy[i]!=-1){
+                            numbersymmetryy[i]*=3;   
+                        }else{
+                            i++;
+                        }
+                    }
+                    tran=numbersymmetryy.slice(0);
+                }
+                //当前图形中心求解
+                function outsourcing(arr){
+                    var xs,ys,xb,yb;
+                    var xm,ym;
+                    var sb=new Array();
+                    xb=arr[1];
+                    yb=arr[2];
+                    xs=arr[1];
+                    ys=arr[2];
+                    for(var i=3;i<arr.length;i++){
+                        if(arr[i]!=-1){
+                            if(xb<arr[i]){
+                                xb=arr[i];
+                            }
+                            if(xs>arr[i]){
+                                xs=arr[i];
+                            }
+                            if(yb<arr[++i]){
+                                yb=arr[i];
+                            }
+                            if(ys>arr[i]){
+                                ys=arr[i];
+                            }
+                        }else{//跳过线条序号
+                            i++;
+                        }
+                    }
+                    xm=(xs+xb)/2;
+                    ym=(ys+yb)/2;
+                    sb[0]=xm;
+                    sb[1]=ym;
+
+                    return sb;
+                }
+                //随机生成颜色
+                function randomColor(){
+                    var arrHex=["0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F"];
+                    var strHex="#";
+                    var index;
+
+                    for(var i=0;i<6;i++){
+                        index=Math.round(Math.random()*15);//rounr 四舍五入
+                        strHex+=arrHex[index];
+                    }
+                    return strHex;
+                }
+            </script>
+        </body>
+    </html>
+</Doctype> 
