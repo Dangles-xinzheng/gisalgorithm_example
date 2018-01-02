@@ -1,0 +1,467 @@
+<Doctype>
+    <html>
+        <head>
+            <title>
+                地图符号填充算法 
+
+
+            </title>
+        </head>
+        
+        <body>
+            <div>
+                <input id="refileInput" type="file"  onchange="reprocessFiles()"/>
+                <input type="submit"  id="polyline" value="填充线状符号" onclick="polyline()"/><br>
+                <input id="fileInput" type="file" onchange="processFiles()"/>
+                <input type="submit"  id="polygon" value="填充面状符号" onclick="polygon()"/><br>
+                <canvas id="myCanvas" width="670" height="650" style="border:1px solid #c3c3c3">your browser does not support the canvas tag </canvas>
+
+            </div>
+                
+            <script>
+                var number=new Array();
+                var tran=new Array();
+                var tranx=new Array();
+                var trany=new Array();
+                var interval=10;//面状间隔
+                var intervaline=8;//线状间隔
+                var o=1;
+
+                var multiple=2.5    //调整地图大小
+                 //主函数
+                function processFiles(){
+                    var file=document.getElementById("fileInput").files[0];
+                    var reader=new FileReader();
+                    reader.readAsText(file);
+                    reader.onload=function(e)
+                    {
+                        number=[];
+                        tran=[];
+                        tranx=[];
+                        trany=[];
+                        var str = this.result;//读取文本       
+                        number= digitalExtraction(str,number);//提取数字并存入数组
+                        tran=number.slice(0);
+
+                        symmetryy();
+                        draw(tran);
+                    }
+                }
+                function reprocessFiles(){
+                    var file=document.getElementById("refileInput").files[0];
+                    var reader=new FileReader();
+                    reader.readAsText(file);
+                    reader.onload=function(e)
+                    {
+                        number=[];
+                        tran=[];
+                        tranx=[];
+                        trany=[];
+                        var str = this.result;//读取文本       
+                        number= digitalExtraction(str,number);//提取数字并存入数组
+                        tran=number.slice(0);
+
+                        symmetryy();
+                        draw(tran);
+                    }
+                }
+                //提取数字，并存入数组
+                function digitalExtraction(str,number){
+                    var heap= str.replace(/[^0-9.eEND-]/ig,"A");
+                    heap= heap.replace(/[^0-9.eA-]/ig,"L");
+
+                    var numcharacter="";//存储数字字符
+                    var number =new Array();//提取数字数组
+                    var i=0;
+                    var flag=1;//heap字符串当前标记
+                    var n=0;//标识数字与字符转换位置
+                    var character=heap[flag];//获取字符串的一个字符
+                    var numline=1;//记录当前为第几条线
+                    var isend=0;
+                    number[i++]=-1;
+                   // document.write(heap);
+                    while(character!=null){
+                        if(character=="L"){//一条线段结束
+                            isend=1;
+                            numline++;
+                            number[i++]=-1;
+                        }
+                        if(numline<10 && isend){//单位数线段
+                            flag+=4;
+                            character=heap[flag];
+                            isend=0;
+                        }
+                        if(9<numline<100 && isend){//两位数线段
+                            flag+=5;
+                            character=heap[flag];
+                            isend=0;
+                        }
+                        if(character!="A"){
+                            n=1;
+                            numcharacter+=character;
+                        }else{ 
+                            if(n){
+                                number[i++]=parseFloat(numcharacter);//将一连串的数字转换为数字
+                                numcharacter="";//存储数字字符重新归空
+                                n=0;
+                            }
+                        }
+                        character=heap[++flag];
+                    }   
+                    return number;
+                }
+                //线
+                function polyline(){
+                    var vegrx=new Array();
+                    var vegry=new Array();
+                    var count =0;
+                    for(var i=0;i<tranx.length;i++){
+                        if(tranx[i]!=-1){
+                            vegrx[count]=tranx[i];
+                            vegry[count++]=trany[i];
+                        }else{
+                            innoline(vegrx,vegry);//判断点是否在区域内
+                            count=0;
+                            vegrx=[];
+                            vegry=[];
+                        }
+                    }
+                }
+                //面
+                function polygon(){
+                    var vegrx=new Array();
+                    var vegry=new Array();
+                    var count =0;
+                    for(var i=0;i<tranx.length;i++){
+                        if(tranx[i]!=-1){
+                            vegrx[count]=tranx[i];
+                            vegry[count++]=trany[i];
+                        }else{
+                            innoarea(vegrx,vegry);//判断点是否在区域内
+                            count=0;
+                            vegrx=[];
+                            vegry=[];
+                        }
+                    }
+                }
+                //判断点是否在区域内部并绘制面状符号
+                function innoarea(arrx,arry){
+                    //获取最小外接矩形
+                    var mx=arrx[0];
+                    var sx=arrx[0];
+                    var my=arry[0];
+                    var sy=arry[0];
+                    for(var i=1;i<arrx.length;i++){
+                        if(arrx[i]>mx){
+                            mx=arrx[i];
+                        }
+                        else if(arrx[i]<sx){
+                            sx=arrx[i];
+                        }
+                        if(arry[i]>my){
+                            my=arry[i];
+                        }
+                        else if(arry[i]<sy){
+                            sy=arry[i];
+                        }
+                    }
+
+                    var width=0;//x轴绘制的个数
+                    var heigth=0;//x轴绘制的个数
+                    var flag=0;
+
+                    width=parseInt((mx-sx)/interval);
+                    heigth=parseInt((my-sy)/interval);
+
+                    for(var i=0;i<width;i++){
+                        for(var j=0;j<heigth;j++){
+                            var x1=sx+interval*i+interval/1.1;
+                            var y1=sy+interval*j+interval/10;
+                            var x2=x1;
+                            var y2=0;
+                            //顺序取出每一条边
+                            for(var l=0;l<arrx.length;l++){
+                                var x3=arrx[l%arrx.length];
+                                var y3=arry[l%arry.length];
+                                var x4=arrx[(l+1)%arrx.length];
+                                var y4=arry[(l+1)%arry.length];
+                                
+                                var d1=(x2-x1)*(y3-y1)-(x3-x1)*(y2-y1);
+                                var d2=(x2-x1)*(y4-y1)-(x4-x1)*(y2-y1);
+                                var d3=(x4-x3)*(y1-y3)-(x1-x3)*(y4-y3);
+                                var d4=(x4-x3)*(y2-y1)-(x2-x1)*(y4-y3);
+
+                                if(d1*d2<0 && d3*d4<0){//有交点
+                                    flag++;
+                                } 
+                            }
+
+                            if(flag%2){//绘制面状符号
+                                drawgon(x1,y1,1.5);
+                            }
+                            flag=0;
+                        }
+                    }
+                }
+                //绘制面状符号
+                function drawgon(x0,y0,radius){
+                    var canvas=document.getElementById('myCanvas');                        
+                    var cxt=canvas.getContext('2d'); 
+                    cxt.lineWidth = 1;
+                    cxt.strokeStyle = 'green'; 
+
+                    cxt.beginPath();
+                    cxt.arc(x0,y0,radius,-Math.PI,Math.PI*2,true);
+                    cxt.stroke();
+                   
+                    cxt.beginPath();
+                    cxt.strokeStyle = 'green'; 
+                    cxt.arc(x0,y0+2*radius,radius*0.7,0,Math.PI*2,true);
+                    cxt.stroke();
+                    cxt.closePath();
+                }
+                //判断点是否在区域内部并绘制线状符号
+                function innoline(arrx,arry){
+                    //获取最小外接矩形
+                    var mx=arrx[0];
+                    var sx=arrx[0];
+                    var my=arry[0];
+                    var sy=arry[0];
+                    for(var i=1;i<arrx.length;i++){
+                        if(arrx[i]>mx){
+                            mx=arrx[i];
+                        }
+                        else if(arrx[i]<sx){
+                            sx=arrx[i];
+                        }
+                        if(arry[i]>my){
+                            my=arry[i];
+                        }
+                        else if(arry[i]<sy){
+                            sy=arry[i];
+                        }
+                    }
+
+                    var width=0;//x轴绘制的个数
+                    width=parseInt((mx-sx)/intervaline)+20;
+
+                    for(var i=0;i<width;i++){
+                        //var x1=sx+i*intervaline;
+                        //var y1=sy;
+                        //var x=x1;
+                        var judge=((mx-sx)>(my-sy));
+                        if(judge){
+                            var x1=sx+i*intervaline;
+                            var y1=sy;
+                            var x=x1;
+                        }else{
+                            var x1=mx;
+                            var y1=my-i*intervaline;
+                            var y=y1;
+                        }
+                        
+                        var num=0;
+                        while(true){
+                            if(judge){
+                                var y=-(x-x1)+y1;
+                                x-=o;
+                            }else{
+                                var x=-y+y1+x1;
+                                y+=o;
+                            }
+
+                            //var y=-(x-x1)+y1;
+                            //x-=o;
+                            var x2=x;
+                            var y2=0;
+                            var flag=0;
+                             //顺序取出每一条边
+                            for(var l=0;l<arrx.length;l++){
+                                var x3=arrx[l%arrx.length];
+                                var y3=arry[l%arry.length];
+                                var x4=arrx[(l+1)%arrx.length];
+                                var y4=arry[(l+1)%arry.length];
+                                
+                                var d1=(x2-x)*(y3-y)-(x3-x)*(y2-y);
+                                var d2=(x2-x)*(y4-y)-(x4-x)*(y2-y);
+                                var d3=(x4-x3)*(y-y3)-(x-x3)*(y4-y3);
+                                var d4=(x4-x3)*(y2-y)-(x2-x)*(y4-y3);
+
+                                if(d1*d2<0 && d3*d4<0){//有交点
+                                    flag++;
+                                }
+                            }
+                            if(flag%2){//绘制线符号
+                                drawline(x,y);
+                            }else{
+                                num++;
+                                if(num==50){
+                                    break;
+                                }
+                            }
+                        }
+                    }     
+                }
+
+                //绘制面状符号
+                function drawline(x0,y0){
+                    var canvas=document.getElementById('myCanvas');                        
+                    var cxt=canvas.getContext('2d'); 
+                    cxt.lineWidth = 1;
+            
+                    cxt.fillRect(x0,y0,1,1);
+
+                }
+                //画图函数
+                function draw(numb){
+                    var canvas=document.getElementById('myCanvas');                        
+                    var cxt=canvas.getContext('2d'); 
+                    cxt.lineWidth = 1.2;
+                    cxt.strokeStyle = randomColor();                      
+
+                    var n= numb.length;
+
+                    var flag=0;
+                    var x= new Array();
+                    var y =new Array();
+                    var j=0;
+                   
+                    var sb=new Array();
+                    sb=outsourcing(numb);
+                    var mx,my;
+                    mx=(document.getElementById("myCanvas").clientWidth/2)-sb[0];
+                    my=(document.getElementById("myCanvas").clientHeight/2)-sb[1];
+
+
+                    //cxt.clearRect(0,0,document.getElementById("myCanvas").clientWidth,document.getElementById("myCanvas").clientHeight);
+                    for(var i=1,j=0;i<n;i++){
+                        if(numb[i]!=-1){
+                            x[j]=numb[i];
+                            y[j]=numb[++i];
+                            x[j]+=mx;
+                            y[j]+=my;
+
+                            tranx.push(x[j]);
+                            trany.push(y[j]);
+                            j++;                         
+                        }else{
+                            cxt.beginPath();
+                            cxt.moveTo(x[0],y[0]);
+
+                            for(var k=1;k<j;k++){
+                                cxt.lineTo(x[k],y[k]);
+                            }
+                            tranx.push(-1);
+                            trany.push(-1);
+                            cxt.stroke();
+                            j=0;
+                            i++;
+                        }
+                    }
+                }
+                //叉乘
+                function determinant (v1,v3,v2,v4){  // 行列式   
+                    return (v1*v4-v2*v3);  
+                }               
+                function intersect(ax,bx,cx,dx,ay,by,cy,dy)  {
+                    var delta = determinant(bx-ax, cx-dx, by-ay, cy-dy);  
+                    if ( delta<=(1e-6) && delta>=-(1e-6) )  // delta=0，表示两线段重合或平行  
+                    {  
+                        return false;  
+                    }  
+                    var namenda = determinant(cx-ax, cx-dx, cy-ay, cy-dy) / delta;  
+                    if ( namenda>1 || namenda<0 )  
+                    {  
+                        return false;  
+                    }  
+                    var miu = determinant(bx-ax, cx-ax, by-ay, cy-ay) / delta;  
+                    if ( miu>1 || miu<0 )  
+                    {  
+                        return false;  
+                    }  
+                    return true;  
+                }  
+                //变换
+                function symmetryy(){
+                    var numbersymmetryy = new Array();
+                    numbersymmetryy=tran.slice(0);
+                    var x,y;
+                    var sb=new Array();
+                   
+                    sb=outsourcing(numbersymmetryy);
+
+                    //地图
+                    for(var i=1;i<numbersymmetryy.length;i++){
+                        if(numbersymmetryy[i]!=-1){
+                            y=numbersymmetryy[++i];
+                            y-=sb[1];
+                            numbersymmetryy[i]=-y;
+                            numbersymmetryy[i]+=sb[1];
+                        }else{
+                            i++;
+                        }
+                    }
+
+                    for(var i=1;i<numbersymmetryy.length;i++){
+                        if(numbersymmetryy[i]!=-1){
+                            numbersymmetryy[i]*=multiple;   
+                        }else{
+                            i++;
+                        }
+                    }
+                    tran=numbersymmetryy.slice(0);
+                }
+                //当前图形中心求解
+                function outsourcing(arr){
+                    var xs,ys,xb,yb;
+                    var xm,ym;
+                    var sb=new Array();
+                    xb=arr[1];
+                    yb=arr[2];
+                    xs=arr[1];
+                    ys=arr[2];
+                    for(var i=3;i<arr.length;i++){
+                        if(arr[i]!=-1){
+                            if(xb<arr[i]){
+                                xb=arr[i];
+                            }
+                            if(xs>arr[i]){
+                                xs=arr[i];
+                            }
+                            if(yb<arr[++i]){
+                                yb=arr[i];
+                            }
+                            if(ys>arr[i]){
+                                ys=arr[i];
+                            }
+                        }else{//跳过线条序号
+                            i++;
+                        }
+                    }
+                    xm=(xs+xb)/2;
+                    ym=(ys+yb)/2;
+                    sb[0]=xm;
+                    sb[1]=ym;
+                    sb[2]=xs;
+                    sb[3]=ys;
+                    sb[4]=xb;
+                    sb[5]=yb;
+
+                    return sb;
+                }
+                //随机颜色
+                function randomColor(){
+                    var arrHex=["0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F"];
+                    var strHex="#";
+                    var index;
+
+                    for(var i=0;i<6;i++){
+                        index=Math.round(Math.random()*15);//rounr 四舍五入
+                        strHex+=arrHex[index];
+                    }
+                    return strHex;
+                }
+            </script>
+        </body>
+    </html>
+</Doctype> 
