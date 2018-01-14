@@ -1,0 +1,281 @@
+<Doctype>
+    <html>
+        <head>
+            <title>
+                地图投影变形效果展示
+            </title>
+        </head>
+        
+        <body>
+            <div>
+                <input id="fileInput" type="file" onchange="processFiles()"/><br>
+                <canvas id="myCanvas" width="1000" height="900" style="border:1px solid #c3c3c3">your browser does not support the canvas tag </canvas>
+
+            </div>
+            <style>
+                canvas {
+                cursor: pointer;
+                border: 1px solid black;
+                }
+            </style>
+                
+            <script>
+                var number=new Array();
+                var numberr=new Array();
+                var tran=new Array();
+                var trann=new Array();
+                var renumber=new Array();
+                var count=0;
+                var xx,yy;
+                
+
+                var multiple=3.5;    //调整地图大小
+                var so=50;
+    
+                //主函数
+                function processFiles(){
+                    var file=document.getElementById("fileInput").files[0];
+                    var reader=new FileReader();
+                    reader.readAsText(file);
+                    reader.onload=function(e)
+                    {
+                        var str = this.result;//读取文本       
+                        number= digitalExtraction(str,number);//提取数字并存入数组
+                        tran=number.slice(0);
+
+                        symmetryy();
+                        Mercator(0,0,number);//利用墨卡托投影进行数据转换
+
+                        //draw(tran);
+                        projectt();
+                    }
+                }
+                //提取数字，并存入数组
+                function digitalExtraction(str,number){
+                    var heap= str.replace(/[^0-9.eEND-]/ig,"A");
+                    heap= heap.replace(/[^0-9.eA-]/ig,"L");
+
+                    var numcharacter="";//存储数字字符
+                    var number =new Array();//提取数字数组
+                    var i=0;
+                    var flag=1;//heap字符串当前标记
+                    var n=0;//标识数字与字符转换位置
+                    var character=heap[flag];//获取字符串的一个字符
+                    var numline=1;//记录当前为第几条线
+                    var isend=0;
+                    number[i++]=-1;
+                   // document.write(heap);
+                    while(character!=null){
+                        if(character=="L"){//一条线段结束
+                            isend=1;
+                            numline++;
+                            number[i++]=-1;
+                        }
+                        if(numline<10 && isend){//单位数线段
+                            flag+=4;
+                            character=heap[flag];
+                            isend=0;
+                        }
+                        if(9<numline<100 && isend){//两位数线段
+                            flag+=5;
+                            character=heap[flag];
+                            isend=0;
+                        }
+                        if(character!="A"){
+                            n=1;
+                            numcharacter+=character;
+                        }else{ 
+                            if(n){
+                                number[i++]=parseFloat(numcharacter);//将一连串的数字转换为数字
+                                numcharacter="";//存储数字字符重新归空
+                                n=0;
+                            }
+                        }
+                        character=heap[++flag];
+                    }   
+                    return number;
+                }
+                //变换
+                function project(){
+                    for(var i=0;i<ten;i++){
+                        Mercator(i*5,0);
+                    }
+                }
+                function projectt(){
+                    var n=number.length;
+                    renumber.push(-1);
+                    for(var j=0;j<so;j++){
+                        for(var i=1;i<n;i++){
+                            if(number[i]!=-1){  
+                                renumber.push(number[i]);                      
+                                renumber.push(number[++i]-j*1.5);
+                            }else{
+                                renumber.push(-1);
+                                renumber.push(-1);
+                                i++;
+                            }
+                        }
+                        Mercator(0,0,renumber);
+                        renumber=[];
+                        renumber.push(-1);
+                    }
+                }
+                //墨卡托
+                function Mercator(B0,L0,num){
+                    var K;
+                    var B;
+                    var a,b,e,e1;
+                    var L;
+                    var X;
+                    var Y;                  
+                    var mercator=new Array();
+                    fg=2;
+                   
+                    //B0=0;
+                    a=6378245;  b=6356863.01877;   e=Math.sqrt((a*a-b*b)/(a*a)); e1=Math.sqrt((a*a-b*b)/(b*b));
+                    //L0=0;
+                    K=((a*a/b)/(Math.sqrt(1+e1*e1*Math.cos(B0*Math.PI/180)*Math.cos(B0*Math.PI/180))))*Math.cos(B0*Math.PI/180);
+                    mercator=num.slice(0);
+                    for(var i=1;i<mercator.length;i++){
+                        if(mercator[i]!=-1){                          
+                            L=mercator[i];
+                            B=mercator[++i];
+                            Y=K*(L-L0);
+                            X=K*Math.log(Math.tan(Math.PI/4+B*Math.PI/360)*Math.pow((1-(e*Math.sin(B*Math.PI/180)))/(1+(e*Math.sin(B*Math.PI/180))),e/2));
+                            mercator[--i]=Y/10000000*2;
+                            mercator[++i]=X/100000;
+                        }else{
+                            i++;
+                        }
+                    }
+                    tran=mercator.slice(0);
+
+                    symmetryy();           
+                    draw(tran);
+
+                }
+                function draw(numb){
+                    var canvas=document.getElementById('myCanvas');                        
+                    var cxt=canvas.getContext('2d'); 
+                    cxt.lineWidth = 1;
+                    cxt.strokeStyle = "blue";   
+                    
+
+                    var n= numb.length;
+
+                    //var flag=0;
+                    var x= new Array();
+                    var y =new Array();
+                    var j=0;
+                   
+                    if(!count){
+                        var sb=new Array();
+                        sb=outsourcing(numb);
+                        
+                        xx=sb[0];
+                        yy=sb[1];
+                        count++;
+                    }
+                    
+                    var mx,my;
+                    mx=(document.getElementById("myCanvas").clientWidth/2)-xx;
+                    my=(document.getElementById("myCanvas").clientHeight/2)-yy;
+                    cxt.clearRect(0,0,1100,900);
+                    for(var i=1,j=0;i<n;i++){
+                        if(numb[i]!=-1){
+                            x[j]=numb[i];
+                            y[j]=numb[++i];
+                            x[j]+=mx;
+                            y[j]+=my;
+                            j++;                         
+                        }else{
+                            cxt.beginPath();
+                            cxt.moveTo(x[0],y[0]);
+                            for(var k=1;k<j;k++){
+                                cxt.lineTo(x[k],y[k]);
+                            }
+                            cxt.stroke();
+                            j=0;
+                            i++;
+                        }
+                    }
+                }
+                //还原
+                function reduction(){
+                    fg=0;
+                    tran=number.slice();
+                    tranx=az.slice(0);
+                    trany=bz.slice(0);
+                    symmetryy();
+                    draw(tran);
+                    dracanvas(tranx,trany);
+                }
+                //变换
+                function symmetryy(){
+                    var numbersymmetryy = new Array();
+                    numbersymmetryy=tran.slice(0);
+                    var x,y;
+                    var sb=new Array();
+                   
+                    sb=outsourcing(numbersymmetryy);
+
+                    //地图
+                    for(var i=1;i<numbersymmetryy.length;i++){
+                        if(numbersymmetryy[i]!=-1){
+                            y=numbersymmetryy[++i];
+                            y-=sb[1];
+                            numbersymmetryy[i]=-y;
+                            numbersymmetryy[i]+=sb[1];
+                        }else{
+                            i++;
+                        }
+                    }
+
+                    for(var i=1;i<numbersymmetryy.length;i++){
+                        if(numbersymmetryy[i]!=-1){
+                            numbersymmetryy[i]*=multiple;    //调整地图大小;   
+                        }else{
+                            i++;
+                        }
+                    }
+                    tran=numbersymmetryy.slice(0);
+                }
+                //当前图形中心求解
+                function outsourcing(arr){
+                    var xs,ys,xb,yb;
+                    var xm,ym;
+                    var sb=new Array();
+                    xb=arr[1];
+                    yb=arr[2];
+                    xs=arr[1];
+                    ys=arr[2];
+                    for(var i=3;i<arr.length;i++){
+                        if(arr[i]!=-1){
+                            if(xb<arr[i]){
+                                xb=arr[i];
+                            }
+                            if(xs>arr[i]){
+                                xs=arr[i];
+                            }
+                            if(yb<arr[++i]){
+                                yb=arr[i];
+                            }
+                            if(ys>arr[i]){
+                                ys=arr[i];
+                            }
+                        }else{//跳过线条序号
+                            i++;
+                        }
+                    }
+                    xm=(xs+xb)/2;
+                    ym=(ys+yb)/2;
+                    sb[0]=xm;
+                    sb[1]=ym;
+
+                    return sb;
+                }
+                
+            </script>
+        </body>
+    </html>
+</Doctype> 
